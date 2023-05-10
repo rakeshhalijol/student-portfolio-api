@@ -1,6 +1,6 @@
 import os
 # --- About The App ---
-APP_NAME = os.getenv("APP_NAME", "fastapi-folder-structure")
+APP_NAME = os.getenv("APP_NAME", "STUDENT-PORTFOLIO-API")
 APP_DESCRIPTION = "API which contains industry standard folder structure"
 
 # Local setup without services and auth. Defaults to false. Local must be set explicitly
@@ -18,3 +18,8 @@ APP_WORKER = int(os.getenv("APP_WORKER", 1))
 
 # Endpoint to Swagger UI
 SWAGGER_ENDPOINT = os.getenv("SWAGGER_ENDPOINT", "/docs")
+
+
+# DATABASE RELATED
+MONGODB_URL = "mongodb://localhost:27017"
+DATABASE_NAME = "STUDENT-PORTFOLIO-DATABASE"

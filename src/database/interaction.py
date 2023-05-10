@@ -3,8 +3,13 @@ from .connection import (
     create_database
 )
 
-client = connect("mongodb://localhost:27017")
-db = create_database(client=client, db_name="TEST-DATABASE")
+from src.config import (
+    MONGODB_URL,
+    DATABASE_NAME
+)
+
+client = connect(MONGODB_URL)
+db = create_database(client=client, db_name=DATABASE_NAME)
 
 
 # --- Create your collections here ---

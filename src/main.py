@@ -24,7 +24,7 @@ from src.utils.openapi import (
     _patch_http_validation_error,
     setup_swagger_auth
 )
-from src.database.interaction import create_user
+from src.database.interaction import (create_user)
 from src.models.requests import (
     UserDataModel
 )
@@ -95,7 +95,12 @@ def welcome():
     return {"msg": "Welcome to student-portfolio-api"}
 
 
-@app.post(USER_CREATE_PATH)
+@app.post(
+    USER_CREATE_PATH,
+    tags=["Credentials"],
+    description="This end point helps to store user data in database"
+
+)
 def create_new_user(userData: UserDataModel) -> UserDataModelResponse:
     inserted_id = create_user(dict(userData))
     return {"status": "OK", "inserted_id": inserted_id}
