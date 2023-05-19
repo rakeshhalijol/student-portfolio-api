@@ -1,36 +1,35 @@
 # Fastapi imports here.
-from fastapi import Body, Depends, FastAPI, Request
-from fastapi import status as http_resp_status
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse, RedirectResponse, Response
+from fastapi.responses import RedirectResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
-
+from fastapi.security import OAuth2PasswordRequestForm
 
 # Any other imports which are not related to fastapi.
 import os
 
 # Folder based imports here
+from src.utils.auth import (
+    authenticate_user,
+    validate_token
+)
+
 from src.config import (
     APP_NAME,
     APP_DESCRIPTION
 )
-from src.urls import (
-    WELCOME_PATH,
-    USER_CREATE_PATH
-)
+
 from src.utils.openapi import (
-    _patch_http_validation_error,
-    setup_swagger_auth
+    _patch_http_validation_error
 )
-from src.database.interaction import create_user
-from src.models.requests import (
-    UserDataModel
-)
-from src.models.responses import (
-    UserDataModelResponse
-)
+from src.apps.exceptions.exception import (
+    handle_validation_exception,
+    handle_http_exception,
+    handle_unexpected_exception)
+from src.apps.credentials.views import router as credentials_router
+
 
 # Intialise a instance of a FastAPI with proper conventions.
 app = FastAPI(title=APP_NAME, description=APP_DESCRIPTION)
@@ -47,38 +46,9 @@ app.add_middleware(
 )
 
 # ---Handle exceptions ---
-
-
-@app.exception_handler(StarletteHTTPException)
-async def handle_http_exception(request: Request, exc: StarletteHTTPException):
-    return JSONResponse(content=exc.detail, status_code=exc.status_code, media_type="application/problem+json")
-
-
-@app.exception_handler(Exception)
-async def handle_unexpected_exception(request: Request, exc: Exception):
-    return JSONResponse(
-        content={
-            "title": "Unexpected exception occurred",
-            "detail": f"{type(exc).__name__}: {exc}",
-            "status": http_resp_status.HTTP_500_INTERNAL_SERVER_ERROR,
-        },
-        status_code=http_resp_status.HTTP_500_INTERNAL_SERVER_ERROR,
-        media_type="application/problem+json",
-    )
-
-
-@app.exception_handler(RequestValidationError)
-async def handle_validation_exception(request: Request, exc: RequestValidationError):
-    return JSONResponse(
-        content={
-            "title": "Validation Error",
-            "detail": "Invalid endpoint input(s) detected",
-            "status": http_resp_status.HTTP_422_UNPROCESSABLE_ENTITY,
-            "error_specs": exc.errors(),
-        },
-        status_code=http_resp_status.HTTP_422_UNPROCESSABLE_ENTITY,
-        media_type="application/problem+json",
-    )
+app.add_exception_handler(StarletteHTTPException, handle_http_exception)
+app.add_exception_handler(Exception, handle_unexpected_exception)
+app.add_exception_handler(RequestValidationError, handle_validation_exception)
 SWAGGER_ENDPOINT = os.getenv("SWAGGER_ENDPOINT", "/docs")
 
 
@@ -90,15 +60,23 @@ def redirect_to_swagger():
 # --- END-POINTS ---
 
 
-@app.get(WELCOME_PATH)
-def welcome():
-    return {"msg": "Welcome to student-portfolio-api"}
+@app.post("/oauth/token", include_in_schema=False)
+def token(formData: OAuth2PasswordRequestForm = Depends()):
+    access_token = authenticate_user(formData.username, formData.password)
+    if access_token is not None:
+        return {"access_token": access_token}
+    raise HTTPException(
+        status_code=401,
+        detail={
+            "title": "Authorization Header Missing",
+            "details": "Authorization token not found in request header",
+            "status": 401,
+        },
+    )
 
 
-@app.post(USER_CREATE_PATH)
-def create_new_user(userData: UserDataModel) -> UserDataModelResponse:
-    inserted_id = create_user(dict(userData))
-    return {"status": "OK", "inserted_id": inserted_id}
+app.include_router(credentials_router, prefix="/credentials",
+                   dependencies=[Depends(validate_token)])
 
 
 # --- WEB-SOCKETS ---
