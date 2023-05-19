@@ -60,8 +60,7 @@ def setup_swagger_auth(
             "OAuth2": {
                 "type": "oauth2",
                 "description": (
-                    "OAuth client credentials (client ID and secret) are required. "
-                    "These can be requested from SAP BTP cloud cockpit."
+                    "OAuth client credentials (username and password) are required. "
                 ),
                 "flows": {
                     "clientCredentials": {
